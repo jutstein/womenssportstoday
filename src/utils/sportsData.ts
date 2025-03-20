@@ -6,6 +6,8 @@ export interface Game {
   teams: {
     home: string;
     away: string;
+    homeScore?: number;
+    awayScore?: number;
   };
   time: string;
   status: 'Scheduled' | 'Live' | 'Completed' | 'Starting Soon';
@@ -45,6 +47,8 @@ const MOCK_GAMES: Game[] = [
     teams: {
       home: 'Connecticut Sun',
       away: 'Washington Mystics',
+      homeScore: 65,
+      awayScore: 58,
     },
     time: '2:30 PM ET',
     status: 'Live',
@@ -97,6 +101,8 @@ const MOCK_GAMES: Game[] = [
     teams: {
       home: 'Minjee Lee',
       away: 'Jin Young Ko',
+      homeScore: -4,
+      awayScore: -2,
     },
     time: 'All Day',
     status: 'Live',

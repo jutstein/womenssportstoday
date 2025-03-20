@@ -11,6 +11,7 @@ interface GameCardProps {
 const GameCard = ({ game, index }: GameCardProps) => {
   const isLive = game.status === 'Live';
   const startingSoon = game.status === 'Starting Soon';
+  const hasScores = game.teams.homeScore !== undefined && game.teams.awayScore !== undefined;
   
   return (
     <div 
@@ -35,6 +36,12 @@ const GameCard = ({ game, index }: GameCardProps) => {
             </div>
 
             <h3 className="mt-2 text-lg font-semibold">{game.teams.home} vs {game.teams.away}</h3>
+            
+            {isLive && hasScores && (
+              <div className="mt-2 text-md font-semibold bg-gradient-to-r from-blue-500 to-violet-500 bg-clip-text text-transparent">
+                {game.teams.homeScore} - {game.teams.awayScore}
+              </div>
+            )}
           </div>
 
           {isLive && (
