@@ -1,10 +1,12 @@
 
 import { useState, useEffect } from 'react';
+import { toast } from "sonner";
 import Header from '@/components/Header';
 import GameCard from '@/components/GameCard';
 import Loader from '@/components/Loader';
 import SportFilter from '@/components/SportFilter';
-import { fetchTodaysGames, getUniqueSports, Game } from '@/utils/sportsData';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchTodaysGames, getUniqueSports, Game, saveWatchlist, loadWatchlist } from '@/utils/sportsData';
 
 const Index = () => {
   const [games, setGames] = useState<Game[]>([]);
@@ -12,7 +14,10 @@ const Index = () => {
   const [sports, setSports] = useState<string[]>([]);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("all");
 
+  // Load games and watchlist on component mount
   useEffect(() => {
     const loadGames = async () => {
       try {
@@ -20,6 +25,10 @@ const Index = () => {
         setGames(todaysGames);
         setFilteredGames(todaysGames);
         setSports(getUniqueSports(todaysGames));
+        
+        // Load saved watchlist
+        const savedWatchlist = loadWatchlist();
+        setWatchlist(savedWatchlist);
       } catch (error) {
         console.error('Error fetching games:', error);
       } finally {
@@ -30,18 +39,58 @@ const Index = () => {
     loadGames();
   }, []);
 
+  // Filter games based on selected sport and active tab
   useEffect(() => {
+    let filtered = games;
+    
+    // Apply sport filter if selected
     if (selectedSport) {
-      setFilteredGames(games.filter(game => game.sport === selectedSport));
-    } else {
-      setFilteredGames(games);
+      filtered = filtered.filter(game => game.sport === selectedSport);
     }
-  }, [selectedSport, games]);
+    
+    // Apply watchlist filter if on watchlist tab
+    if (activeTab === "watchlist") {
+      filtered = filtered.filter(game => watchlist.includes(game.id));
+    }
+    
+    setFilteredGames(filtered);
+  }, [selectedSport, games, watchlist, activeTab]);
+
+  // Toggle game in watchlist
+  const handleToggleWatchlist = (gameId: string) => {
+    let newWatchlist: string[];
+    
+    if (watchlist.includes(gameId)) {
+      // Remove from watchlist
+      newWatchlist = watchlist.filter(id => id !== gameId);
+      toast("Game removed from watchlist");
+    } else {
+      // Add to watchlist
+      newWatchlist = [...watchlist, gameId];
+      toast("Game added to watchlist");
+    }
+    
+    setWatchlist(newWatchlist);
+    saveWatchlist(newWatchlist);
+  };
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Clear sport filter when switching tabs for better UX
+    if (selectedSport) {
+      setSelectedSport(null);
+    }
+  };
 
   // Group games by status for better organization
   const liveGames = filteredGames.filter(game => game.status === 'Live');
   const startingSoonGames = filteredGames.filter(game => game.status === 'Starting Soon');
   const upcomingGames = filteredGames.filter(game => game.status === 'Scheduled');
+
+  // Check if watchlist is empty
+  const isWatchlistEmpty = watchlist.length === 0 && activeTab === "watchlist";
 
   return (
     <div className="min-h-screen pb-16">
@@ -63,13 +112,35 @@ const Index = () => {
           <Loader />
         ) : (
           <>
-            <SportFilter 
-              sports={sports} 
-              selectedSport={selectedSport} 
-              onSelectSport={setSelectedSport} 
-            />
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+                <TabsTrigger value="all">All Games</TabsTrigger>
+                <TabsTrigger value="watchlist">My Watchlist</TabsTrigger>
+              </TabsList>
+            </Tabs>
             
-            {filteredGames.length === 0 ? (
+            {activeTab === "all" && (
+              <SportFilter 
+                sports={sports} 
+                selectedSport={selectedSport} 
+                onSelectSport={setSelectedSport} 
+              />
+            )}
+            
+            {isWatchlistEmpty ? (
+              <div className="text-center py-16 animate-fade-in">
+                <h3 className="text-xl font-medium mb-2">Your watchlist is empty</h3>
+                <p className="text-muted-foreground mb-6">
+                  Add games to your watchlist to keep track of the ones you want to watch.
+                </p>
+                <button 
+                  className="text-primary hover:underline" 
+                  onClick={() => setActiveTab("all")}
+                >
+                  Browse all games
+                </button>
+              </div>
+            ) : filteredGames.length === 0 ? (
               <div className="text-center py-16 animate-fade-in">
                 <h3 className="text-xl font-medium mb-2">No games found</h3>
                 <p className="text-muted-foreground">
@@ -86,7 +157,13 @@ const Index = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {liveGames.map((game, index) => (
-                        <GameCard key={game.id} game={game} index={index} />
+                        <GameCard 
+                          key={game.id} 
+                          game={game} 
+                          index={index} 
+                          isInWatchlist={watchlist.includes(game.id)}
+                          onToggleWatchlist={handleToggleWatchlist}
+                        />
                       ))}
                     </div>
                   </section>
@@ -100,7 +177,13 @@ const Index = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {startingSoonGames.map((game, index) => (
-                        <GameCard key={game.id} game={game} index={index} />
+                        <GameCard 
+                          key={game.id} 
+                          game={game} 
+                          index={index} 
+                          isInWatchlist={watchlist.includes(game.id)}
+                          onToggleWatchlist={handleToggleWatchlist}
+                        />
                       ))}
                     </div>
                   </section>
@@ -111,7 +194,13 @@ const Index = () => {
                     <h2 className="text-xl font-semibold mb-4">Coming Up Today</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {upcomingGames.map((game, index) => (
-                        <GameCard key={game.id} game={game} index={index} />
+                        <GameCard 
+                          key={game.id} 
+                          game={game} 
+                          index={index} 
+                          isInWatchlist={watchlist.includes(game.id)}
+                          onToggleWatchlist={handleToggleWatchlist}
+                        />
                       ))}
                     </div>
                   </section>

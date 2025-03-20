@@ -167,3 +167,13 @@ const MOCK_GAMES: Game[] = [
 export const getUniqueSports = (games: Game[]): string[] => {
   return [...new Set(games.map(game => game.sport))];
 };
+
+// Local storage functions for watchlist
+export const saveWatchlist = (watchlist: string[]): void => {
+  localStorage.setItem('sports-watchlist', JSON.stringify(watchlist));
+};
+
+export const loadWatchlist = (): string[] => {
+  const saved = localStorage.getItem('sports-watchlist');
+  return saved ? JSON.parse(saved) : [];
+};

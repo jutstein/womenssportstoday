@@ -1,14 +1,17 @@
 
-import { Clock, MapPin, Tv } from "lucide-react";
+import { Bookmark, BookmarkPlus, Clock, MapPin, Tv } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Game } from "@/utils/sportsData";
+import { Button } from "@/components/ui/button";
 
 interface GameCardProps {
   game: Game;
   index: number;
+  isInWatchlist: boolean;
+  onToggleWatchlist: (gameId: string) => void;
 }
 
-const GameCard = ({ game, index }: GameCardProps) => {
+const GameCard = ({ game, index, isInWatchlist, onToggleWatchlist }: GameCardProps) => {
   const isLive = game.status === 'Live';
   const startingSoon = game.status === 'Starting Soon';
   const hasScores = game.teams.homeScore !== undefined && game.teams.awayScore !== undefined;
@@ -82,6 +85,26 @@ const GameCard = ({ game, index }: GameCardProps) => {
               <span>{game.broadcast}</span>
             </div>
           )}
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={cn(
+              "mt-2 w-full justify-start",
+              isInWatchlist ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
+            )}
+            onClick={() => onToggleWatchlist(game.id)}
+          >
+            {isInWatchlist ? (
+              <>
+                <Bookmark className="h-4 w-4 mr-2" /> Saved to Watchlist
+              </>
+            ) : (
+              <>
+                <BookmarkPlus className="h-4 w-4 mr-2" /> Add to Watchlist
+              </>
+            )}
+          </Button>
         </div>
       </div>
       
