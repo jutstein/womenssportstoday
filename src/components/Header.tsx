@@ -37,7 +37,7 @@ const Header = () => {
         <div className="animate-fade-in">
           <h1 className="text-2xl font-semibold tracking-tight">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600">
-              Women's Sports
+              womenssportsoftoday
             </span>
           </h1>
           <p className="text-sm text-muted-foreground flex items-center mt-1">
