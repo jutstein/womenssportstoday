@@ -91,6 +91,7 @@ export const getUniqueSports = (games: Game[]): string[] => {
 
 // User-specific watchlist functions
 export const saveWatchlist = (watchlist: string[], userId: string): void => {
+  // Use a consistent key format with the user ID
   const key = `sports-watchlist-${userId}`;
   localStorage.setItem(key, JSON.stringify(watchlist));
 };
@@ -98,6 +99,7 @@ export const saveWatchlist = (watchlist: string[], userId: string): void => {
 export const loadWatchlist = (userId: string | null): string[] => {
   if (!userId) return [];
   
+  // Use the same key format as in saveWatchlist
   const key = `sports-watchlist-${userId}`;
   const saved = localStorage.getItem(key);
   return saved ? JSON.parse(saved) : [];

@@ -37,7 +37,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem('sports-user');
     if (storedUser) {
       try {
-        setCurrentUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser);
+        console.log('User loaded from localStorage:', parsedUser);
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('sports-user');
@@ -78,8 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = () => {
     localStorage.removeItem('sports-user');
-    // Clear user-specific watchlist
-    localStorage.removeItem('sports-watchlist');
     setCurrentUser(null);
     toast.info('You have been signed out');
   };

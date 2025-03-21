@@ -22,7 +22,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
 
-  // Load games and watchlist on component mount
+  // Load games on component mount
   useEffect(() => {
     const loadGames = async () => {
       try {
@@ -41,12 +41,6 @@ const Index = () => {
           setSports(getUniqueSports(todaysGames));
           toast("Latest games loaded successfully");
         }
-        
-        // Load saved watchlist for current user
-        if (currentUser) {
-          const savedWatchlist = loadWatchlist(currentUser.id);
-          setWatchlist(savedWatchlist);
-        }
       } catch (error) {
         console.error('Error fetching games:', error);
         setError("Failed to load games. Please try again later.");
@@ -60,6 +54,16 @@ const Index = () => {
     };
 
     loadGames();
+  }, []);
+
+  // Load watchlist whenever currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      const savedWatchlist = loadWatchlist(currentUser.id);
+      setWatchlist(savedWatchlist);
+    } else {
+      setWatchlist([]);
+    }
   }, [currentUser]);
 
   // Filter games based on selected sport and active tab
@@ -96,6 +100,7 @@ const Index = () => {
     }
     
     setWatchlist(newWatchlist);
+    // Ensure we save with the current user's ID
     saveWatchlist(newWatchlist, currentUser.id);
   };
 
