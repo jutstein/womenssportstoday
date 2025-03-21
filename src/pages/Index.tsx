@@ -21,8 +21,9 @@ const Index = () => {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState<number>(0); // Add a refresh key
 
-  // Load games on component mount
+  // Load games on component mount or when refreshKey changes
   useEffect(() => {
     const loadGames = async () => {
       try {
@@ -39,7 +40,14 @@ const Index = () => {
           setGames(todaysGames);
           setFilteredGames(todaysGames);
           setSports(getUniqueSports(todaysGames));
-          toast("Latest games loaded successfully");
+          
+          // Highlight NWSL games in the toast notification
+          const nwslCount = todaysGames.filter(game => game.league === 'NWSL').length;
+          if (nwslCount > 0) {
+            toast(`Latest games loaded, including ${nwslCount} NWSL matches!`);
+          } else {
+            toast("Latest games loaded successfully");
+          }
         }
       } catch (error) {
         console.error('Error fetching games:', error);
@@ -54,7 +62,7 @@ const Index = () => {
     };
 
     loadGames();
-  }, []);
+  }, [refreshKey]);
 
   // Load watchlist whenever currentUser changes
   useEffect(() => {
@@ -113,11 +121,17 @@ const Index = () => {
       setSelectedSport(null);
     }
   };
+  
+  // Add a refresh function
+  const handleRefresh = () => {
+    setRefreshKey(prevKey => prevKey + 1);
+  };
 
   // Group games by status for better organization
   const liveGames = filteredGames.filter(game => game.status === 'Live');
   const startingSoonGames = filteredGames.filter(game => game.status === 'Starting Soon');
   const upcomingGames = filteredGames.filter(game => game.status === 'Scheduled');
+  const completedGames = filteredGames.filter(game => game.status === 'Completed');
 
   // Check if watchlist is empty
   const isWatchlistEmpty = watchlist.length === 0 && activeTab === "watchlist";
@@ -162,19 +176,30 @@ const Index = () => {
             <p className="text-muted-foreground mb-6">{error}</p>
             <button 
               className="text-primary hover:underline"
-              onClick={() => window.location.reload()}
+              onClick={handleRefresh}
             >
               Refresh page
             </button>
           </div>
         ) : (
           <>
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-                <TabsTrigger value="all">All Games</TabsTrigger>
-                <TabsTrigger value="watchlist">My Watchlist</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex justify-between items-center mb-6">
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-md">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="all">All Games</TabsTrigger>
+                  <TabsTrigger value="watchlist">My Watchlist</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                className="ml-4"
+              >
+                Refresh Games
+              </Button>
+            </div>
             
             {activeTab === "all" && (
               <SportFilter 
@@ -251,6 +276,23 @@ const Index = () => {
                     <h2 className="text-xl font-semibold mb-4">Coming Up Today</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {upcomingGames.map((game, index) => (
+                        <GameCard 
+                          key={game.id} 
+                          game={game} 
+                          index={index} 
+                          isInWatchlist={watchlist.includes(game.id)}
+                          onToggleWatchlist={handleToggleWatchlist}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+                
+                {completedGames.length > 0 && (
+                  <section>
+                    <h2 className="text-xl font-semibold mb-4">Completed Games</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {completedGames.map((game, index) => (
                         <GameCard 
                           key={game.id} 
                           game={game} 
