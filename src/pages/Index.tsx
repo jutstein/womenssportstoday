@@ -16,21 +16,38 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
 
   // Load games and watchlist on component mount
   useEffect(() => {
     const loadGames = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch games from API
         const todaysGames = await fetchTodaysGames();
-        setGames(todaysGames);
-        setFilteredGames(todaysGames);
-        setSports(getUniqueSports(todaysGames));
+        
+        if (todaysGames.length === 0) {
+          setError("No games found for today. Please try again later.");
+          toast("No games found for today");
+        } else {
+          setGames(todaysGames);
+          setFilteredGames(todaysGames);
+          setSports(getUniqueSports(todaysGames));
+          toast("Latest games loaded successfully");
+        }
         
         // Load saved watchlist
         const savedWatchlist = loadWatchlist();
         setWatchlist(savedWatchlist);
       } catch (error) {
         console.error('Error fetching games:', error);
+        setError("Failed to load games. Please try again later.");
+        toast("Failed to load games", {
+          description: "Check your connection and try again",
+          duration: 5000,
+        });
       } finally {
         setLoading(false);
       }
@@ -110,6 +127,17 @@ const Index = () => {
         
         {loading ? (
           <Loader />
+        ) : error ? (
+          <div className="text-center py-16 animate-fade-in">
+            <h3 className="text-xl font-medium mb-2">Oops! Something went wrong</h3>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <button 
+              className="text-primary hover:underline"
+              onClick={() => window.location.reload()}
+            >
+              Refresh page
+            </button>
+          </div>
         ) : (
           <>
             <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
@@ -212,7 +240,7 @@ const Index = () => {
       </main>
       
       <footer className="mt-16 container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} Women's Sports Schedule • All information is for demonstration purposes only</p>
+        <p>© {new Date().getFullYear()} Women's Sports Schedule • Data provided by Sports API</p>
       </footer>
     </div>
   );

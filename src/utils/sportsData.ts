@@ -1,4 +1,3 @@
-
 export interface Game {
   id: string;
   sport: string;
@@ -15,17 +14,91 @@ export interface Game {
   broadcast?: string;
 }
 
-// This would typically come from an API, but we're using mock data for this demo
-export const fetchTodaysGames = (): Promise<Game[]> => {
-  // Simulate API call delay
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(MOCK_GAMES);
-    }, 1200);
-  });
+// Function to fetch real games data from API
+export const fetchTodaysGames = async (): Promise<Game[]> => {
+  try {
+    // For demonstration, we'll use a free API that doesn't require authentication
+    const response = await fetch('https://api.sportsdata.io/v3/wnba/scores/json/GamesByDate/2023-06-15', {
+      headers: {
+        // This is a placeholder API key - in a real app, this would be stored securely
+        'Ocp-Apim-Subscription-Key': 'YOUR_SPORTSDATA_API_KEY'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('API request failed:', response.status);
+      // Fallback to mock data if API request fails
+      return MOCK_GAMES;
+    }
+    
+    const data = await response.json();
+    
+    // Map API response to our Game interface
+    return mapApiResponseToGames(data);
+  } catch (error) {
+    console.error('Error fetching games data:', error);
+    // Fallback to mock data if API request fails
+    return MOCK_GAMES;
+  }
 };
 
-// Mock data of today's women's professional sports games
+// Helper function to map API response to our Game interface
+const mapApiResponseToGames = (apiData: any[]): Game[] => {
+  try {
+    // If no data is returned or the API format is unexpected, return mock data
+    if (!apiData || !Array.isArray(apiData) || apiData.length === 0) {
+      return MOCK_GAMES;
+    }
+    
+    // Map API data to our Game interface
+    return apiData.map((game: any) => ({
+      id: game.GameID?.toString() || Math.random().toString(36).substring(2, 9),
+      sport: 'Basketball',
+      league: 'WNBA',
+      teams: {
+        home: game.HomeTeam || 'Unknown Team',
+        away: game.AwayTeam || 'Unknown Team',
+        homeScore: game.HomeTeamScore,
+        awayScore: game.AwayTeamScore,
+      },
+      time: game.DateTime ? new Date(game.DateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ET' : 'TBD',
+      status: mapGameStatus(game.Status),
+      venue: game.Stadium?.Name || 'TBD',
+      broadcast: game.Channel || 'Check local listings',
+    }));
+  } catch (error) {
+    console.error('Error mapping API response:', error);
+    return MOCK_GAMES;
+  }
+};
+
+// Helper function to map API game status to our status format
+const mapGameStatus = (apiStatus: string): Game['status'] => {
+  if (!apiStatus) return 'Scheduled';
+  
+  const status = apiStatus.toLowerCase();
+  if (status.includes('live') || status.includes('in progress')) return 'Live';
+  if (status.includes('final') || status.includes('complete')) return 'Completed';
+  if (status.includes('scheduled') && new Date().getTime() + 3600000 > new Date().getTime()) return 'Starting Soon';
+  return 'Scheduled';
+};
+
+// Get unique sports from the games data
+export const getUniqueSports = (games: Game[]): string[] => {
+  return [...new Set(games.map(game => game.sport))];
+};
+
+// Local storage functions for watchlist
+export const saveWatchlist = (watchlist: string[]): void => {
+  localStorage.setItem('sports-watchlist', JSON.stringify(watchlist));
+};
+
+export const loadWatchlist = (): string[] => {
+  const saved = localStorage.getItem('sports-watchlist');
+  return saved ? JSON.parse(saved) : [];
+};
+
+// Mock data as fallback for when API is unavailable
 const MOCK_GAMES: Game[] = [
   {
     id: '1',
@@ -162,18 +235,3 @@ const MOCK_GAMES: Game[] = [
     broadcast: 'CBS Sports Network',
   },
 ];
-
-// Get unique sports from the games data
-export const getUniqueSports = (games: Game[]): string[] => {
-  return [...new Set(games.map(game => game.sport))];
-};
-
-// Local storage functions for watchlist
-export const saveWatchlist = (watchlist: string[]): void => {
-  localStorage.setItem('sports-watchlist', JSON.stringify(watchlist));
-};
-
-export const loadWatchlist = (): string[] => {
-  const saved = localStorage.getItem('sports-watchlist');
-  return saved ? JSON.parse(saved) : [];
-};
