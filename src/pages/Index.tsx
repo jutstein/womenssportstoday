@@ -7,8 +7,12 @@ import Loader from '@/components/Loader';
 import SportFilter from '@/components/SportFilter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTodaysGames, getUniqueSports, Game, saveWatchlist, loadWatchlist } from '@/utils/sportsData';
+import { useAuth } from '@/context/AuthContext';
+import { LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
+  const { currentUser, signOut } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
   const [sports, setSports] = useState<string[]>([]);
@@ -38,9 +42,11 @@ const Index = () => {
           toast("Latest games loaded successfully");
         }
         
-        // Load saved watchlist
-        const savedWatchlist = loadWatchlist();
-        setWatchlist(savedWatchlist);
+        // Load saved watchlist for current user
+        if (currentUser) {
+          const savedWatchlist = loadWatchlist(currentUser.id);
+          setWatchlist(savedWatchlist);
+        }
       } catch (error) {
         console.error('Error fetching games:', error);
         setError("Failed to load games. Please try again later.");
@@ -54,7 +60,7 @@ const Index = () => {
     };
 
     loadGames();
-  }, []);
+  }, [currentUser]);
 
   // Filter games based on selected sport and active tab
   useEffect(() => {
@@ -75,6 +81,8 @@ const Index = () => {
 
   // Toggle game in watchlist
   const handleToggleWatchlist = (gameId: string) => {
+    if (!currentUser) return;
+    
     let newWatchlist: string[];
     
     if (watchlist.includes(gameId)) {
@@ -88,7 +96,7 @@ const Index = () => {
     }
     
     setWatchlist(newWatchlist);
-    saveWatchlist(newWatchlist);
+    saveWatchlist(newWatchlist, currentUser.id);
   };
 
   // Handle tab change
@@ -123,6 +131,22 @@ const Index = () => {
             Stay updated with all of today's professional women's sports games, featuring live scores, 
             upcoming matches, and broadcast information.
           </p>
+          
+          {currentUser && (
+            <div className="mt-4 flex justify-center items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Signed in as <span className="font-medium">{currentUser.email}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+                className="ml-2"
+              >
+                <LogOut className="h-4 w-4 mr-2" /> Sign Out
+              </Button>
+            </div>
+          )}
         </div>
         
         {loading ? (

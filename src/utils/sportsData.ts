@@ -1,3 +1,4 @@
+
 export interface Game {
   id: string;
   sport: string;
@@ -88,13 +89,17 @@ export const getUniqueSports = (games: Game[]): string[] => {
   return [...new Set(games.map(game => game.sport))];
 };
 
-// Local storage functions for watchlist
-export const saveWatchlist = (watchlist: string[]): void => {
-  localStorage.setItem('sports-watchlist', JSON.stringify(watchlist));
+// User-specific watchlist functions
+export const saveWatchlist = (watchlist: string[], userId: string): void => {
+  const key = `sports-watchlist-${userId}`;
+  localStorage.setItem(key, JSON.stringify(watchlist));
 };
 
-export const loadWatchlist = (): string[] => {
-  const saved = localStorage.getItem('sports-watchlist');
+export const loadWatchlist = (userId: string | null): string[] => {
+  if (!userId) return [];
+  
+  const key = `sports-watchlist-${userId}`;
+  const saved = localStorage.getItem(key);
   return saved ? JSON.parse(saved) : [];
 };
 
