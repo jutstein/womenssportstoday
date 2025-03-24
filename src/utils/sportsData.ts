@@ -1,3 +1,4 @@
+
 export interface Game {
   id: string;
   sport: string;
@@ -14,7 +15,7 @@ export interface Game {
   broadcast?: string;
 }
 
-// Import our new scraper service
+// Import our scraper service
 import { scrapeGames } from '@/services/sportsScraper';
 
 // Main function to fetch today's games
@@ -34,13 +35,12 @@ export const fetchTodaysGames = async (): Promise<Game[]> => {
   }
 };
 
-// This function is no longer needed as we've replaced it with the scraper
-// Keeping it here for backward compatibility
+// Get NWSL games specifically
 export const fetchNWSLGames = async (): Promise<Game[]> => {
   try {
-    // This now just returns the NWSL games from our mock data
-    // as a fallback in case the scraper fails
-    return MOCK_GAMES.filter(game => game.league === 'NWSL');
+    // Get all games and filter to just NWSL
+    const allGames = await fetchTodaysGames();
+    return allGames.filter(game => game.league === 'NWSL');
   } catch (error) {
     console.error('Error fetching NWSL games:', error);
     return MOCK_GAMES.filter(game => game.league === 'NWSL');
