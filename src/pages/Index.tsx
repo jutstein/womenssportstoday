@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import Header from '@/components/Header';
@@ -8,7 +7,7 @@ import SportFilter from '@/components/SportFilter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTodaysGames, getUniqueSports, Game, saveWatchlist, loadWatchlist } from '@/utils/sportsData';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut } from 'lucide-react';
+import { LogOut, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
@@ -21,16 +20,16 @@ const Index = () => {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState<number>(0); // Add a refresh key
+  const [refreshKey, setRefreshKey] = useState<number>(0);
 
-  // Load games on component mount or when refreshKey changes
   useEffect(() => {
     const loadGames = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch games from API
+        toast("Scraping latest sports data...");
+        
         const todaysGames = await fetchTodaysGames();
         
         if (todaysGames.length === 0) {
@@ -41,7 +40,6 @@ const Index = () => {
           setFilteredGames(todaysGames);
           setSports(getUniqueSports(todaysGames));
           
-          // Highlight NWSL games in the toast notification
           const nwslCount = todaysGames.filter(game => game.league === 'NWSL').length;
           if (nwslCount > 0) {
             toast(`Latest games loaded, including ${nwslCount} NWSL matches!`);
@@ -52,7 +50,7 @@ const Index = () => {
       } catch (error) {
         console.error('Error fetching games:', error);
         setError("Failed to load games. Please try again later.");
-        toast("Failed to load games", {
+        toast("Failed to scrape games", {
           description: "Check your connection and try again",
           duration: 5000,
         });
@@ -64,7 +62,6 @@ const Index = () => {
     loadGames();
   }, [refreshKey]);
 
-  // Load watchlist whenever currentUser changes
   useEffect(() => {
     if (currentUser) {
       const savedWatchlist = loadWatchlist(currentUser.id);
@@ -74,16 +71,13 @@ const Index = () => {
     }
   }, [currentUser]);
 
-  // Filter games based on selected sport and active tab
   useEffect(() => {
     let filtered = games;
     
-    // Apply sport filter if selected
     if (selectedSport) {
       filtered = filtered.filter(game => game.sport === selectedSport);
     }
     
-    // Apply watchlist filter if on watchlist tab
     if (activeTab === "watchlist") {
       filtered = filtered.filter(game => watchlist.includes(game.id));
     }
@@ -91,49 +85,41 @@ const Index = () => {
     setFilteredGames(filtered);
   }, [selectedSport, games, watchlist, activeTab]);
 
-  // Toggle game in watchlist
   const handleToggleWatchlist = (gameId: string) => {
     if (!currentUser) return;
     
     let newWatchlist: string[];
     
     if (watchlist.includes(gameId)) {
-      // Remove from watchlist
       newWatchlist = watchlist.filter(id => id !== gameId);
       toast("Game removed from watchlist");
     } else {
-      // Add to watchlist
       newWatchlist = [...watchlist, gameId];
       toast("Game added to watchlist");
     }
     
     setWatchlist(newWatchlist);
-    // Ensure we save with the current user's ID
     saveWatchlist(newWatchlist, currentUser.id);
   };
 
-  // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
-    // Clear sport filter when switching tabs for better UX
     if (selectedSport) {
       setSelectedSport(null);
     }
   };
-  
-  // Add a refresh function
+
   const handleRefresh = () => {
+    toast("Refreshing games data...");
     setRefreshKey(prevKey => prevKey + 1);
   };
 
-  // Group games by status for better organization
   const liveGames = filteredGames.filter(game => game.status === 'Live');
   const startingSoonGames = filteredGames.filter(game => game.status === 'Starting Soon');
   const upcomingGames = filteredGames.filter(game => game.status === 'Scheduled');
   const completedGames = filteredGames.filter(game => game.status === 'Completed');
 
-  // Check if watchlist is empty
   const isWatchlistEmpty = watchlist.length === 0 && activeTab === "watchlist";
 
   return (
@@ -195,9 +181,10 @@ const Index = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={handleRefresh}
-                className="ml-4"
+                className="ml-4 flex items-center gap-1"
               >
-                Refresh Games
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
               </Button>
             </div>
             
@@ -311,7 +298,7 @@ const Index = () => {
       </main>
       
       <footer className="mt-16 container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} Women's Sports Schedule • Data provided by Sports API</p>
+        <p>© {new Date().getFullYear()} Women's Sports Schedule • Data provided by Sports Scraper</p>
       </footer>
     </div>
   );

@@ -14,108 +14,37 @@ export interface Game {
   broadcast?: string;
 }
 
-// Function to fetch real games data from API
+// Import our new scraper service
+import { scrapeGames } from '@/services/sportsScraper';
+
+// Main function to fetch today's games
 export const fetchTodaysGames = async (): Promise<Game[]> => {
   try {
-    const allGames = await Promise.all([
-      fetchNWSLGames(),
-      fetchOtherSports(), // Keep our mock data for other sports
-    ]);
+    console.log('Fetching today\'s games...');
     
-    // Flatten the arrays and remove any undefined values
-    return allGames.flat().filter(Boolean) as Game[];
+    // Use our scraper service to get game data
+    const games = await scrapeGames();
+    
+    // Return the scraped games, which will be properly formatted
+    return games;
   } catch (error) {
     console.error('Error fetching games data:', error);
-    // Fallback to mock data if API request fails
+    // Fallback to mock data if scraping fails
     return MOCK_GAMES;
   }
 };
 
-// Function to fetch NWSL games from Google Custom Search API
+// This function is no longer needed as we've replaced it with the scraper
+// Keeping it here for backward compatibility
 export const fetchNWSLGames = async (): Promise<Game[]> => {
   try {
-    // Using a free API service that doesn't require auth for demo purposes
-    // In production, this would use a proper sports API
-    const response = await fetch('https://serpapi.com/search.json?q=nwsl+games+schedule+today&engine=google');
-    
-    if (!response.ok) {
-      console.error('NWSL API request failed:', response.status);
-      // Fallback to mock NWSL data
-      return MOCK_GAMES.filter(game => game.league === 'NWSL');
-    }
-    
-    const data = await response.json();
-    
-    // Extract games from Google search results
-    // This is a simplified example - in reality, parsing Google's data would require more robust handling
-    return parseNWSLGamesFromGoogle(data);
+    // This now just returns the NWSL games from our mock data
+    // as a fallback in case the scraper fails
+    return MOCK_GAMES.filter(game => game.league === 'NWSL');
   } catch (error) {
     console.error('Error fetching NWSL games:', error);
     return MOCK_GAMES.filter(game => game.league === 'NWSL');
   }
-};
-
-const parseNWSLGamesFromGoogle = (data: any): Game[] => {
-  try {
-    // This would normally parse structured data from the API
-    // For now, we'll return the mock NWSL games since we can't actually use Google search API without authentication
-    const nwslGames = MOCK_GAMES.filter(game => game.league === 'NWSL');
-    
-    // Get today's date in MM/DD/YYYY format for display
-    const today = new Date();
-    const formattedDate = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
-    
-    // Update the games to show today's date in venue
-    return nwslGames.map(game => ({
-      ...game,
-      venue: `${game.venue} (Today: ${formattedDate})`,
-      time: generateRealisticTime(), // Generate more realistic times
-    }));
-  } catch (error) {
-    console.error('Error parsing NWSL games from Google:', error);
-    return MOCK_GAMES.filter(game => game.league === 'NWSL');
-  }
-};
-
-// Generate a realistic game time (for demonstration)
-const generateRealisticTime = (): string => {
-  const now = new Date();
-  const hours = now.getHours();
-  
-  // Generate a time that's either in the past, now, or in the future
-  let gameHour;
-  let status: Game['status'];
-  
-  if (Math.random() < 0.3) {
-    // Game is in the past (today)
-    gameHour = Math.max(1, hours - Math.floor(Math.random() * 4));
-    status = 'Completed';
-  } else if (Math.random() < 0.5) {
-    // Game is happening now or starting soon
-    gameHour = hours;
-    status = Math.random() < 0.5 ? 'Live' : 'Starting Soon';
-  } else {
-    // Game is in the future (today)
-    gameHour = Math.min(23, hours + Math.floor(Math.random() * 6));
-    status = 'Scheduled';
-  }
-  
-  // Format the hour in 12-hour format
-  const displayHour = gameHour % 12 || 12;
-  const ampm = gameHour < 12 ? 'AM' : 'PM';
-  
-  // Generate a random minute
-  const minute = Math.floor(Math.random() * 60);
-  const minuteStr = minute < 10 ? `0${minute}` : minute.toString();
-  
-  return `${displayHour}:${minuteStr} ${ampm} ET`;
-};
-
-// Function to fetch other sports (using mock data for now)
-const fetchOtherSports = async (): Promise<Game[]> => {
-  // We would normally make API calls for each sport here
-  // For now, just return the non-NWSL mock games
-  return MOCK_GAMES.filter(game => game.league !== 'NWSL');
 };
 
 // Get unique sports from the games data
@@ -139,7 +68,7 @@ export const loadWatchlist = (userId: string | null): string[] => {
   return saved ? JSON.parse(saved) : [];
 };
 
-// Mock data as fallback for when API is unavailable
+// Mock data as fallback for when scraping fails
 const MOCK_GAMES: Game[] = [
   {
     id: '1',
